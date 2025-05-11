@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Fraud Detection</title>
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <h1>UPI Fraud Detection</h1>
+    <form action="/" method="POST">
+        <label>Transaction Amount:</label>
+        <input type="number" name="normalized_amount" required>
+        
+        <label>Transaction Count:</label>
+        <input type="number" name="transaction_count" required>
+        
+        <label>Merchant ID:</label>
+        <input type="number" name="merchant_id" required>
+        
+        <label>User ID:</label>
+        <input type="number" name="user_id" required>
+        
+        <button type="submit">Check Fraud Risk</button>
+    </form>
+
+    {% if result %}
+        <h2>Fraud Prediction: {{ result['fraud_prediction'] }}</h2>
+        <h2>Anomaly Detection: {{ result['anomaly_detection'] }}</h2>
+    {% endif %}
+
+    <!-- JavaScript should be included before closing </body> -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
