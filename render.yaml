@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: upi-fraud-detection
+    runtime: python
+    buildCommand: |
+      pip install -r requirements.txt
+      python scripts/generate_dataset.py
+      python scripts/data_preprocessing.py
+      python scripts/train_model.py
+      python scripts/anomaly_detection.py
+      python api/database.py
+    startCommand: gunicorn api.flask_app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
