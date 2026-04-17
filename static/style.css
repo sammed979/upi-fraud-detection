@@ -1,0 +1,11 @@
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #111827; }
+::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+
+/* Smooth number transition */
+#score-number { transition: all 0.4s ease; }
+
+/* QR reader sizing */
+#qr-reader { width: 100% !important; }
+#qr-reader video { width: 100% !important; border-radius: 8px; }

@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Shield AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="min-h-screen bg-gray-950 text-gray-100 font-sans">
+
+<!-- Header -->
+<header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+        <div class="w-9 h-9 bg-blue-600 rounded-lg flex items-center justify-center font-bold text-white">S</div>
+        <div>
+            <h1 class="text-lg font-bold text-white">UPI Shield AI</h1>
+            <p class="text-xs text-gray-400">Pre-payment Fraud Prevention</p>
+        </div>
+    </div>
+    <span class="text-xs bg-green-900 text-green-400 px-3 py-1 rounded-full border border-green-700">AI Powered</span>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+    <!-- Left: Input Form -->
+    <section class="bg-gray-900 rounded-2xl p-6 border border-gray-800">
+        <h2 class="text-base font-semibold text-white mb-5">Analyze Transaction</h2>
+
+        <!-- UPI ID -->
+        <div class="mb-4">
+            <label class="block text-xs text-gray-400 mb-1">UPI ID</label>
+            <div class="flex gap-2">
+                <input id="upi_id" type="text" placeholder="e.g. name@upi"
+                    class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                <button onclick="toggleQR()"
+                    class="bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg text-xs text-gray-300 border border-gray-600">
+                    Scan QR
+                </button>
+            </div>
+            <!-- QR Scanner -->
+            <div id="qr-container" class="hidden mt-3">
+                <div id="qr-reader" class="rounded-lg overflow-hidden"></div>
+                <button onclick="stopQR()" class="mt-2 text-xs text-red-400 hover:text-red-300">Stop Scanner</button>
+            </div>
+        </div>
+
+        <!-- Amount -->
+        <div class="mb-4">
+            <label class="block text-xs text-gray-400 mb-1">Amount (Rs.)</label>
+            <input id="amount" type="number" placeholder="e.g. 5000" min="1"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <!-- Purpose -->
+        <div class="mb-4">
+            <label class="block text-xs text-gray-400 mb-1">Purpose</label>
+            <select id="purpose"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                <option value="friend_family">Friend / Family</option>
+                <option value="education">Education</option>
+                <option value="shopping">Shopping</option>
+                <option value="unknown">Unknown</option>
+            </select>
+        </div>
+
+        <!-- First time toggle -->
+        <div class="mb-6 flex items-center justify-between bg-gray-800 rounded-lg px-4 py-3 border border-gray-700">
+            <span class="text-sm text-gray-300">First time paying this UPI?</span>
+            <button id="toggle-btn" onclick="toggleNew()"
+                class="w-12 h-6 rounded-full transition-colors duration-200 bg-blue-600 relative">
+                <span id="toggle-dot"
+                    class="absolute top-1 right-1 w-4 h-4 bg-white rounded-full transition-all duration-200"></span>
+            </button>
+        </div>
+        <input type="hidden" id="is_new" value="true">
+
+        <button onclick="analyze()" id="analyze-btn"
+            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-semibold py-3 rounded-xl text-sm transition-colors">
+            Analyze Transaction
+        </button>
+    </section>
+
+    <!-- Right: Result Panel -->
+    <section class="bg-gray-900 rounded-2xl p-6 border border-gray-800 flex flex-col">
+        <h2 class="text-base font-semibold text-white mb-5">Risk Analysis</h2>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="flex-1 flex flex-col items-center justify-center text-gray-600 py-10">
+            <div class="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mb-3 text-2xl">?</div>
+            <p class="text-sm">Enter UPI details and click Analyze</p>
+        </div>
+
+        <!-- Result (hidden until analyzed) -->
+        <div id="result-panel" class="hidden flex-1 flex flex-col gap-4">
+
+            <!-- Risk Score Circle -->
+            <div class="flex items-center gap-5">
+                <div id="score-circle"
+                    class="w-24 h-24 rounded-full border-4 flex flex-col items-center justify-center shrink-0">
+                    <span id="score-number" class="text-2xl font-bold"></span>
+                    <span class="text-xs text-gray-400">/ 100</span>
+                </div>
+                <div>
+                    <p id="risk-badge" class="text-lg font-bold mb-1"></p>
+                    <p id="explanation" class="text-xs text-gray-400 leading-relaxed"></p>
+                </div>
+            </div>
+
+            <!-- Score breakdown -->
+            <div class="bg-gray-800 rounded-xl p-4 space-y-3">
+                <p class="text-xs text-gray-400 font-semibold uppercase tracking-wide">Score Breakdown</p>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-400">Rule-based Score</span>
+                    <span id="rule-score" class="text-white font-medium"></span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-400">ML Model Score</span>
+                    <span id="ml-score" class="text-white font-medium"></span>
+                </div>
+                <div class="flex justify-between text-sm border-t border-gray-700 pt-2">
+                    <span class="text-gray-300 font-semibold">Final Score</span>
+                    <span id="final-score-row" class="font-bold"></span>
+                </div>
+            </div>
+
+            <!-- Trust meter -->
+            <div>
+                <div class="flex justify-between text-xs text-gray-400 mb-1">
+                    <span>Trust Level</span>
+                    <span id="trust-label"></span>
+                </div>
+                <div class="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div id="trust-bar" class="h-full rounded-full transition-all duration-700"></div>
+                </div>
+            </div>
+
+            <!-- Reported badge -->
+            <div id="reported-badge" class="hidden bg-red-900 border border-red-700 rounded-xl px-4 py-3 text-sm text-red-300">
+                This UPI ID has been reported for fraud by other users.
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex gap-3 mt-auto">
+                <button onclick="reportFraud()"
+                    class="flex-1 bg-red-900 hover:bg-red-800 border border-red-700 text-red-300 text-sm py-2 rounded-xl transition-colors">
+                    Report Fraud
+                </button>
+                <button onclick="resetForm()"
+                    class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm py-2 rounded-xl transition-colors">
+                    Check Another
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recent Checks Table (full width) -->
+    <section class="lg:col-span-2 bg-gray-900 rounded-2xl p-6 border border-gray-800">
+        <h2 class="text-base font-semibold text-white mb-4">Recent Checks</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-xs text-gray-500 border-b border-gray-800">
+                        <th class="text-left pb-3 font-medium">UPI ID</th>
+                        <th class="text-left pb-3 font-medium">Amount</th>
+                        <th class="text-left pb-3 font-medium">Purpose</th>
+                        <th class="text-left pb-3 font-medium">Score</th>
+                        <th class="text-left pb-3 font-medium">Risk</th>
+                        <th class="text-left pb-3 font-medium">Time</th>
+                    </tr>
+                </thead>
+                <tbody id="logs-body">
+                    {% for r in logs %}
+                    <tr class="border-b border-gray-800 hover:bg-gray-800 transition-colors">
+                        <td class="py-3 text-gray-300">{{ r[1] }}</td>
+                        <td class="py-3 text-gray-300">Rs.{{ "%.0f"|format(r[2]) }}</td>
+                        <td class="py-3 text-gray-400 capitalize">{{ r[3] }}</td>
+                        <td class="py-3 font-medium
+                            {% if r[7] == 'HIGH RISK' %}text-red-400
+                            {% elif r[7] == 'SUSPICIOUS' %}text-yellow-400
+                            {% else %}text-green-400{% endif %}">
+                            {{ r[6] }}
+                        </td>
+                        <td class="py-3">
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold
+                                {% if r[7] == 'HIGH RISK' %}bg-red-900 text-red-400
+                                {% elif r[7] == 'SUSPICIOUS' %}bg-yellow-900 text-yellow-400
+                                {% else %}bg-green-900 text-green-400{% endif %}">
+                                {{ r[7] }}
+                            </span>
+                        </td>
+                        <td class="py-3 text-gray-500 text-xs">{{ r[9][:16] if r[9] else '' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="6" class="py-6 text-center text-gray-600">No checks yet</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
