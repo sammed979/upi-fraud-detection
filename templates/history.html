@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Transaction History — UPI Fraud Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>UPI Fraud Detection System</h1>
+    <p>Full Transaction History</p>
+</header>
+
+<main>
+    <section class="card table-card">
+        <div class="table-header">
+            <h2>All Transactions (last 100)</h2>
+            <a href="/" class="btn-link">← Back to Dashboard</a>
+        </div>
+
+        {% if transactions %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Amount (₹)</th>
+                        <th>User</th>
+                        <th>Merchant</th>
+                        <th>Hour</th>
+                        <th>Fraud Score</th>
+                        <th>Risk</th>
+                        <th>Fraud</th>
+                        <th>Anomaly</th>
+                        <th>Source</th>
+                        <th>Razorpay ID</th>
+                        <th>Timestamp</th>
+                        <th>Report</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr class="{{ 'row-fraud' if t[7] == 1 else '' }}">
+                        <td>{{ t[0] }}</td>
+                        <td>₹{{ "%.2f"|format(t[3]) }}</td>
+                        <td>{{ t[1] }}</td>
+                        <td>{{ t[2] }}</td>
+                        <td>{{ t[4] }}</td>
+                        <td>{{ t[9] }}</td>
+                        <td><span class="risk-badge risk-{{ t[10]|lower }}">{{ t[10] }}</span></td>
+                        <td>{{ "FRAUD" if t[7] == 1 else "Safe" }}</td>
+                        <td>{{ "Anomaly" if t[8] == -1 else "Normal" }}</td>
+                        <td>{{ t[11] }}</td>
+                        <td>{{ t[12] or "—" }}</td>
+                        <td>{{ t[13][:16] if t[13] else '' }}</td>
+                        <td><a href="/report/{{ t[0] }}" class="btn-sm" target="_blank">PDF</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <p class="empty-state">No transactions recorded yet.</p>
+        {% endif %}
+    </section>
+</main>
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+venv/
+env/
+
+# Models (large binary files)
+models/*.pkl
+
+# Database (contains real transaction data)
+data/fraud_detection.db
+
+# Logs
+*.log
+flask_run.log
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPI Fraud Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<header>
+    <h1>UPI Fraud Detection System</h1>
+    <p>Real-time transaction risk analysis powered by Machine Learning</p>
+</header>
+
+<main>
+
+    <!-- Stats Cards -->
+    <section class="stats-grid">
+        <div class="stat-card">
+            <span class="stat-number">{{ stats.total }}</span>
+            <span class="stat-label">Total Transactions</span>
+        </div>
+        <div class="stat-card danger">
+            <span class="stat-number">{{ stats.fraud }}</span>
+            <span class="stat-label">Fraud Detected</span>
+        </div>
+        <div class="stat-card info">
+            <span class="stat-number">{{ stats.today }}</span>
+            <span class="stat-label">Checked Today</span>
+        </div>
+        <div class="stat-card success">
+            <span class="stat-number">
+                {% if stats.total > 0 %}
+                    {{ "%.1f"|format((stats.total - stats.fraud) / stats.total * 100) }}%
+                {% else %}0%{% endif %}
+            </span>
+            <span class="stat-label">Safe Rate</span>
+        </div>
+    </section>
+
+    <div class="content-grid">
+
+        <!-- Input Form -->
+        <section class="card form-card">
+            <h2>Check Transaction</h2>
+            <form id="fraud-form" action="/" method="POST">
+
+                <div class="form-group">
+                    <label>Transaction Amount (₹)</label>
+                    <input type="number" name="transaction_amount" placeholder="e.g. 4500" step="0.01" min="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>User ID</label>
+                    <input type="number" name="user_id" placeholder="e.g. 42" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Merchant ID</label>
+                    <input type="number" name="merchant_id" placeholder="e.g. 15" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Transaction Count (user's total)</label>
+                    <input type="number" name="transaction_count" placeholder="e.g. 5" min="1" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Hour of Day (0–23)</label>
+                    <input type="number" name="hour_of_day" placeholder="e.g. 2" min="0" max="23" required>
+                </div>
+
+                <button type="submit" id="submit-btn">Analyse Transaction</button>
+            </form>
+        </section>
+
+        <!-- Result Panel -->
+        <section class="card result-card">
+            <h2>Analysis Result</h2>
+
+            {% if error %}
+                <div class="alert alert-error">{{ error }}</div>
+            {% endif %}
+
+            {% if result %}
+                <div class="result-box {{ 'result-fraud' if result.fraud_prediction == 1 else 'result-safe' }}">
+
+                    <div class="score-circle {{ 'score-high' if result.risk_level == 'HIGH' else 'score-medium' if result.risk_level == 'MEDIUM' else 'score-low' }}">
+                        <span class="score-number">{{ result.fraud_score }}</span>
+                        <span class="score-label">/ 100</span>
+                    </div>
+
+                    <h3>{{ result.fraud_label }}</h3>
+                    <p class="risk-badge risk-{{ result.risk_level|lower }}">{{ result.risk_level }} RISK</p>
+
+                    <div class="result-details">
+                        <div class="detail-row">
+                            <span>ML Fraud Model</span>
+                            <span>{{ result.fraud_label }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Anomaly Detection</span>
+                            <span>{{ result.anomaly_label }}</span>
+                        </div>
+                        <div class="detail-row">
+                            <span>Amount</span>
+                            <span>₹{{ "%.2f"|format(result.amount) }}</span>
+                        </div>
+                    </div>
+
+                    <a href="/report/{{ last_id }}" class="btn-report" target="_blank">
+                        Download PDF Report
+                    </a>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <p>Submit a transaction to see the fraud analysis result here.</p>
+                </div>
+            {% endif %}
+        </section>
+
+    </div>
+
+    <!-- Recent Transactions Table -->
+    <section class="card table-card">
+        <div class="table-header">
+            <h2>Recent Transactions</h2>
+            <a href="/history" class="btn-link">View All →</a>
+        </div>
+
+        {% if transactions %}
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Amount (₹)</th>
+                        <th>User</th>
+                        <th>Merchant</th>
+                        <th>Hour</th>
+                        <th>Fraud Score</th>
+                        <th>Risk</th>
+                        <th>Source</th>
+                        <th>Time</th>
+                        <th>Report</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in transactions %}
+                    <tr class="{{ 'row-fraud' if t[7] == 1 else '' }}">
+                        <td>{{ t[0] }}</td>
+                        <td>₹{{ "%.2f"|format(t[3]) }}</td>
+                        <td>{{ t[1] }}</td>
+                        <td>{{ t[2] }}</td>
+                        <td>{{ t[4] }}</td>
+                        <td>
+                            <div class="score-bar">
+                                <div class="score-fill {{ 'fill-high' if t[10] == 'HIGH' else 'fill-medium' if t[10] == 'MEDIUM' else 'fill-low' }}"
+                                     style="width:{{ t[9] }}%"></div>
+                            </div>
+                            {{ t[9] }}
+                        </td>
+                        <td><span class="risk-badge risk-{{ t[10]|lower }}">{{ t[10] }}</span></td>
+                        <td>{{ t[11] }}</td>
+                        <td>{{ t[13][:16] if t[13] else '' }}</td>
+                        <td><a href="/report/{{ t[0] }}" class="btn-sm" target="_blank">PDF</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <p class="empty-state">No transactions yet. Submit one above.</p>
+        {% endif %}
+    </section>
+
+</main>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
